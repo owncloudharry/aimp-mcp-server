@@ -42,8 +42,8 @@ Datei öffnen: `%APPDATA%\Claude\claude_desktop_config.json`
       "args": ["C:\\Users\\DEIN_NAME\\aimp_mcp\\server.py"],
       "env": {
         "AIMP_EXE":          "C:\\Program Files\\AIMP\\AIMP.exe",
-        "AIMP_MUSIC_DIRS":   "D:\\OneDrive\\Musik",
-        "AIMP_PLAYLIST_DIR": "D:\\OneDrive\\Musik\\Playlisten",
+        "AIMP_MUSIC_DIRS":   "D:\\DEIN_PFAD\Musik",
+        "AIMP_PLAYLIST_DIR": "D:\\DEIN_PFAD\\Musik\\Playlisten",
         "AIMP_ADB_PATH":     "C:\\Users\\DEIN_NAME\\AppData\\Roaming\\AIMP\\AudioLibrary\\Local.adb"
       }
     }
