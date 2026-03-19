@@ -1,0 +1,4 @@
+mcp>=1.0.0
+pyaimp>=0.3.0
+pywin32>=306
+mutagen>=1.47.0
