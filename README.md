@@ -1,116 +1,218 @@
 # AIMP MCP Server
 
-Steuert den **AIMP Music Player** über das Model Context Protocol (MCP).  
-Funktioniert mit **Claude Desktop** und **LM Studio**.
+> Control the [AIMP music player](https://www.aimp.ru/) through natural language via the **Model Context Protocol (MCP)**.  
+> Works with **Claude Desktop**, **LM Studio**, and any other MCP-compatible AI client.
+
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)
+![Platform: Windows](https://img.shields.io/badge/platform-Windows-lightgrey)
+![MCP Compatible](https://img.shields.io/badge/MCP-compatible-green)
+![License: MIT](https://img.shields.io/badge/license-MIT-yellow)
 
 ---
 
-## 1. Python & Abhängigkeiten installieren
+## What can you do?
 
-1. https://www.python.org/downloads/ → Python 3.11+, Haken bei „Add Python to PATH"
-2. In einer **cmd.exe**:
-   ```
-   pip install mcp pyaimp pywin32 mutagen
-   ```
-   > `mutagen` ist optional — ohne es funktioniert alles außer Jahr- und Genre-Suche.
-
----
-
-## 2. server.py ablegen
-
-Kopiere `server.py` in einen festen Ordner, z.B.:
 ```
-C:\Users\DEIN_NAME\aimp_mcp\server.py
+"Play something by Rammstein from 1997"
+"What are my 10 most played songs?"
+"Create a playlist with 90s rock songs and shuffle it"
+"Show all tracks rated 5 stars"
+"When did I last listen to Falco?"
 ```
 
+**28 tools** covering playback, search, playlist management, statistics, and ratings.
+
+### Unique feature: Direct database access
+
+Unlike simple remote-control integrations, this server reads AIMP's **binary AudioLibrary database** (`Local.adb`) directly — no AIMP API needed. This enables:
+
+- **Play counts & last-played timestamps** from AIMP's internal tracking
+- **Star ratings** as set inside AIMP (not ID3 POPM tags)
+- **Top tracks** with date filters and minimum play count thresholds
+
+The `.adb` format (ADLMEMDB) was reverse-engineered to decode record layout, OLE timestamps, and rating fields.
+
 ---
 
-## 3. Konfiguration per MCP-JSON (empfohlen)
+## Requirements
 
-Alle Pfade werden direkt im MCP-JSON-Eintrag hinterlegt — **kein Anfassen der server.py nötig**.  
-Das macht es einfach mehrere Rechner mit unterschiedlichen Pfaden zu betreiben.
+- Windows (AIMP is Windows-only)
+- [AIMP](https://www.aimp.ru/) installed
+- Python 3.11+
+- An MCP-compatible client (Claude Desktop, LM Studio, etc.)
 
-### Claude Desktop
+---
 
-Datei öffnen: `%APPDATA%\Claude\claude_desktop_config.json`
+## Installation
+
+### 1. Install dependencies
+
+```cmd
+pip install mcp pyaimp pywin32 mutagen
+```
+
+> `mutagen` is optional — everything works without it except year- and genre-based search.
+
+### 2. Place server.py
+
+Copy `server.py` to a permanent folder, e.g.:
+```
+C:\Users\YOUR_NAME\aimp_mcp\server.py
+```
+
+### 3. Configure your MCP client
+
+All paths are set via environment variables in the MCP config — **no need to edit server.py**.  
+This makes it easy to run on multiple machines with different paths.
+
+#### Claude Desktop
+
+Open: `%APPDATA%\Claude\claude_desktop_config.json`
 
 ```json
 {
   "mcpServers": {
     "aimp": {
       "command": "python",
-      "args": ["C:\\Users\\DEIN_NAME\\aimp_mcp\\server.py"],
+      "args": ["C:\\Users\\YOUR_NAME\\aimp_mcp\\server.py"],
       "env": {
         "AIMP_EXE":          "C:\\Program Files\\AIMP\\AIMP.exe",
-        "AIMP_MUSIC_DIRS":   "D:\\DEIN_PFAD\Musik",
-        "AIMP_PLAYLIST_DIR": "D:\\DEIN_PFAD\\Musik\\Playlisten",
-        "AIMP_ADB_PATH":     "C:\\Users\\DEIN_NAME\\AppData\\Roaming\\AIMP\\AudioLibrary\\Local.adb"
+        "AIMP_MUSIC_DIRS":   "D:\\Music",
+        "AIMP_PLAYLIST_DIR": "D:\\Music\\Playlists",
+        "AIMP_ADB_PATH":     "C:\\Users\\YOUR_NAME\\AppData\\Roaming\\AIMP\\AudioLibrary\\Local.adb"
       }
     }
   }
 }
 ```
 
-**Mehrere Musikordner** → mit Semikolon trennen:
+**Multiple music folders** → separate with semicolons:
 ```json
-"AIMP_MUSIC_DIRS": "D:\\Musik;E:\\Mehr Musik;F:\\Archiv"
+"AIMP_MUSIC_DIRS": "D:\\Music;E:\\More Music;F:\\Archive"
 ```
 
-### LM Studio
+#### LM Studio
 
-Einstellungen → MCP Servers → Add Server → stdio:
+Settings → MCP Servers → Add Server → stdio, then paste:
 ```json
 {
   "command": "python",
-  "args": ["C:\\Users\\DEIN_NAME\\aimp_mcp\\server.py"],
+  "args": ["C:\\Users\\YOUR_NAME\\aimp_mcp\\server.py"],
   "env": {
     "AIMP_EXE":          "C:\\Program Files\\AIMP\\AIMP.exe",
-    "AIMP_MUSIC_DIRS":   "D:\\DEIN_PFAD\\Musik",
-    "AIMP_PLAYLIST_DIR": "D:\\DEIN_PFAD\\Musik\\Playlisten"
+    "AIMP_MUSIC_DIRS":   "D:\\Music",
+    "AIMP_PLAYLIST_DIR": "D:\\Music\\Playlists",
+    "AIMP_ADB_PATH":     "C:\\Users\\YOUR_NAME\\AppData\\Roaming\\AIMP\\AudioLibrary\\Local.adb"
   }
 }
 ```
 
 ---
 
-## 4. Verfügbare Tools & Beispiel-Prompts
+## Environment Variables
 
-| Tool | Beispiel-Prompt |
-|---|---|
-| `aimp_get_status` | „Was spielt gerade?" |
-| `aimp_play/pause/stop` | „Pause", „Play", „Stop" |
-| `aimp_next/previous_track` | „Nächster Song", „Zurück" |
-| `aimp_set_volume` | „Lautstärke auf 60%" |
-| `aimp_mute_toggle` | „Ton aus" |
-| `aimp_set_shuffle` | „Shuffle an/aus" |
-| `aimp_set_repeat` | „Repeat an/aus" |
-| `aimp_seek` | „Springe zu Minute 2:30" |
-| `aimp_search` | „Suche alle Songs von Queen" |
-| `aimp_search_and_play` | „Spiele Bohemian Rhapsody" |
-| `aimp_search_and_play` | „Spiele etwas von Rammstein aus 1997" |
-| `aimp_search_and_play` | „Spiele einen Metal-Song" |
-| `aimp_play_album` | „Spiele das Album Mutter von Rammstein" |
-| `aimp_play_file` | direkter Dateipfad |
-| `aimp_create_playlist` | „Erstelle Playlist 90er Rock mit Rock-Songs aus den 90ern" |
-| `aimp_list_playlists` | „Zeige meine Playlisten" |
-| `aimp_play_playlist` | „Spiele Playlist Rammstein Mix" |
-| `aimp_extend_playlist` | „Füge AC/DC Songs zur Playlist Rock hinzu" |
-| `aimp_shuffle_playlist` | „Mische die Playlist Rock Mix" |
-| `aimp_delete_playlist` | „Lösche Playlist Alt" |
-| `aimp_list_music_dirs` | „Welche Musikordner sind konfiguriert?" |
+| Variable | Required | Description |
+|---|---|---|
+| `AIMP_EXE` | No | Path to AIMP.exe (default: `C:\Program Files\AIMP\AIMP.exe`) |
+| `AIMP_MUSIC_DIRS` | No | Music folders, separated by `;` |
+| `AIMP_PLAYLIST_DIR` | No | Folder for `.m3u` playlists |
+| `AIMP_ADB_PATH` | No* | Path to `Local.adb` — required for statistics and rating tools |
+
+*Without `AIMP_ADB_PATH`, all tools work except `aimp_top_tracks`, `aimp_track_stats`, `aimp_search_by_rating`, and `aimp_get_track_rating`.
 
 ---
 
-## 5. Troubleshooting
+## Available Tools
 
-**Jahr/Genre-Suche funktioniert nicht**  
-→ `pip install mutagen` ausführen, MCP-Client neu starten.
+### Playback Control
 
-**AIMP startet nicht automatisch**  
-→ `AIMP_EXE` Pfad im JSON prüfen. Doppelte Backslashes `\\` in JSON sind Pflicht.
+| Tool | Example prompt |
+|---|---|
+| `aimp_get_status` | "What's playing right now?" |
+| `aimp_get_current_track` | "Which song is this?" |
+| `aimp_play` | "Play" |
+| `aimp_pause` | "Pause" |
+| `aimp_stop` | "Stop" |
+| `aimp_next_track` | "Next song" |
+| `aimp_previous_track` | "Go back" |
+| `aimp_set_volume` | "Set volume to 60%" |
+| `aimp_get_volume` | "How loud is it?" |
+| `aimp_mute_toggle` | "Mute" |
+| `aimp_set_shuffle` | "Shuffle on/off" |
+| `aimp_set_repeat` | "Repeat on/off" |
+| `aimp_seek` | "Jump to 2:30" |
 
-**Keine Songs gefunden**  
-→ `AIMP_MUSIC_DIRS` prüfen. Mehrere Ordner mit `;` trennen.
+### Search & Play
 
-**Pfad-Fehler unter Windows**  
-→ In JSON immer doppelte Backslashes: `C:\\Musik` nicht `C:\Musik`.
+| Tool | Example prompt |
+|---|---|
+| `aimp_search` | "Find all songs by Queen" |
+| `aimp_search_and_play` | "Play Bohemian Rhapsody" |
+| `aimp_search_and_play` | "Play something by Rammstein from 1997" |
+| `aimp_search_and_play` | "Play a metal song" |
+| `aimp_play_album` | "Play the album Mutter by Rammstein" |
+| `aimp_play_file` | "Play D:\Music\song.mp3" |
+| `aimp_list_music_dirs` | "Which music folders are configured?" |
+
+### Playlists
+
+| Tool | Example prompt |
+|---|---|
+| `aimp_create_playlist` | "Create a playlist called 90s Rock with rock songs from the 90s" |
+| `aimp_list_playlists` | "Show my playlists" |
+| `aimp_play_playlist` | "Play the playlist Rammstein Mix" |
+| `aimp_extend_playlist` | "Add AC/DC songs to the Rock playlist" |
+| `aimp_shuffle_playlist` | "Shuffle the Rock Mix playlist and play it" |
+| `aimp_delete_playlist` | "Delete playlist Old Stuff" |
+
+### Statistics *(requires `AIMP_ADB_PATH`)*
+
+Reads directly from AIMP's binary AudioLibrary database.
+
+| Tool | Example prompt |
+|---|---|
+| `aimp_top_tracks` | "What are my 10 most played songs?" |
+| `aimp_top_tracks` | "Top 20 tracks played after 2026-01-01" |
+| `aimp_top_tracks` | "Tracks with at least 5 plays — play the first one" |
+| `aimp_track_stats` | "How many times have I played Alison Moyet - All Cried Out?" |
+| `aimp_track_stats` | "When did I last listen to Falco?" |
+
+### Ratings *(requires `AIMP_ADB_PATH`)*
+
+Reads the star ratings set **inside AIMP** — not the ID3 POPM tag.
+
+| Tool | Example prompt |
+|---|---|
+| `aimp_search_by_rating` | "Show all 5-star songs" |
+| `aimp_search_by_rating` | "Find tracks rated 3 stars or more" |
+| `aimp_search_by_rating` | "Play a 4-star song" |
+| `aimp_get_track_rating` | "How many stars does ZAZA - Zauberstab have?" |
+
+---
+
+## Troubleshooting
+
+**Statistics/rating tools return an error**  
+→ Check `AIMP_ADB_PATH` in your config. It should point to `Local.adb` in AIMP's AppData folder.  
+→ Typical path: `C:\Users\YOUR_NAME\AppData\Roaming\AIMP\AudioLibrary\Local.adb`
+
+**Year/genre search doesn't work**  
+→ Run `pip install mutagen`, then restart your MCP client.
+
+**AIMP doesn't start automatically**  
+→ Check the `AIMP_EXE` path. Make sure to use double backslashes `\\` in JSON.
+
+**No songs found**  
+→ Check `AIMP_MUSIC_DIRS`. Multiple folders must be separated by `;`.
+
+**Path errors on Windows**  
+→ Always use double backslashes in JSON: `C:\\Music` not `C:\Music`.
+
+---
+
+## Related
+
+- [AIMP official website](https://www.aimp.ru/)
+- [Model Context Protocol](https://modelcontextprotocol.io/)
+- [Claude Desktop](https://claude.ai/download)
+- [LM Studio](https://lmstudio.ai/)
